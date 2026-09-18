@@ -45,7 +45,7 @@ addLayer("p", {
     ],
     layerShown(){ return true },
 
-    // СПИСОК ВЕХ (MILESTONES)
+        // СПИСОК ВЕХ (MILESTONES)
     milestones: {
         0: {
             requirementDescription: "100 points",
@@ -63,14 +63,14 @@ addLayer("p", {
             done() { return player.p.points.gte(new ExpantaNum(1000)) }
         },
         3: {
-            requirementDescription: "10000 prestige points",
-            effectDescription: "Prestige point gain is multiplied by 5x.",
-            done() { return player.p.points.gte(new ExpantaNum(10000)) } 
+            requirementDescription: "500,000 points", // ТЕПЕРЬ ТРЕТЬЯ ВЕХА
+            effectDescription: "Did you enjoy upgrading Upgrade 14? Then take this: Upgrade 14 is buffed from ^0.80 to ^0.9, but a softcap of ^0.7 applies after 10000 prestige points.",
+            done() { return player.points.gte(new ExpantaNum(500000)) } 
         },
         4: {
-            requirementDescription: "50000 points",
-            effectDescription: "Did you enjoy upgrading Upgrade 14? Then take this: Upgrade 14 is buffed from ^0.80 to ^0.9, but a softcap of ^0.7 applies after 10000 prestige points.",
-            done() { return player.points.gte(new ExpantaNum(500000)) } // ТЕКСТ ИЗМЕНЕН НА ^0.9
+            requirementDescription: "10,000 prestige points", // ТЕПЕРЬ ЧЕТВЕРТАЯ ВЕХА
+            effectDescription: "Prestige point gain is multiplied by 5x.",
+            done() { return player.p.points.gte(new ExpantaNum(10000)) } 
         }
     },
 
@@ -89,12 +89,13 @@ addLayer("p", {
         },
         13: {
             title: "Weak Boost?",
-            description: "Raises total point generation to the power of 1.4.", // ТЕКСТ ИЗМЕНЕН НА 1.4
+            description: "Raises total point generation to the power of 1.4.", 
             cost: new ExpantaNum(5),
             unlocked() { return hasUpgrade("p", 12) },
         },
         14: {
             title: "Prestige Synergy",
+            effect() { return getUpgrade14Effect().bonus }, // ИСПРАВЛЕНО: добавлен расчет эффекта для TMT системы
             description() { 
                 let effect = getUpgrade14Effect()
                 let exponentText = format(effect.exponent)

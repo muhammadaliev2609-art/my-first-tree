@@ -11,11 +11,16 @@ let modInfo = {
 
 // Версия игры
 let VERSION = {
-	num: "0.2",
-	name: "Omega Update!",
+	num: "0.2.1",
+	name: "Mini Bugfix",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.2.1 - Mini Bugfix</h3><br>
+		- Fixed a critical progression bug where point generation would lock at 0 on start.<br>
+		- Rearranged Milestones 3 and 4 for smoother scaling.<br>
+		- Synchronized Upgrade 14 calculations with the new milestones layout.<br>
+		- Fixed number notation! Replaced chaotic comma placement and long decimals with clean scientific notation (e.g. 1.00e6) after 1,000,000.<br><br>
 	<h3>v0.2 - Omega Update!</h3><br>
 		- Added 2 Milestones<br>
 		- Added 1 layer<br>
@@ -29,11 +34,12 @@ let changelog = `<h1>Changelog:</h1><br>
 		- Fully integrated ExpantaNum math engine.<br>
 		- Endgame 100000 points`
 
+
 let winText = `Congratulations! You have reached the end and beaten this game, but for now...`
 
-// Функция проверки конца игры (1e8 обычных очков)
+// Функция проверки конца игры (1e9 обычных очков)
 function isEndgame() {
-	return player.points.gte(new ExpantaNum("1000000000")) // 1e8 обычных очков
+	return player.points.gte(new ExpantaNum("1000000000")) // 1e9 обычных очков
 }
 
 
@@ -53,7 +59,8 @@ function getPointGen() {
 	if(!canGenPoints())
 		return new ExpantaNum(0)
 
-	let gain = new ExpantaNum(0)
+	// ИСПРАВЛЕНО: Базовый прирост равен 1, иначе без апгрейда 11 игра стоит на месте
+	let gain = new ExpantaNum(1) 
 
 	// 1. Улучшение 11 (+1 очко в сек)
 	if (hasUpgrade("p", 11)) {
@@ -76,8 +83,9 @@ function getPointGen() {
 		let effPrestige = prestigeAmount
 		let exponent = new ExpantaNum(0.65)
 
-		if (hasMilestone("p", 4)) { 
-			exponent = new ExpantaNum(0.9) // УСИЛЕНО: теперь степень 0.9 при 4-й вехе
+		// СИНХРОНИЗИРОВАНО: теперь это веха 3 (500k points)
+		if (hasMilestone("p", 3)) { 
+			exponent = new ExpantaNum(0.9) // УСИЛЕНО: теперь степень 0.9 при 3-й вехе
 			if (prestigeAmount.gt(new ExpantaNum(10000))) {
 				let excess = prestigeAmount.sub(new ExpantaNum(10000))
 				let softcappedExcess = excess.pow(new ExpantaNum(0.7)) 
@@ -129,7 +137,8 @@ function getUpgrade14Effect() {
     let effPrestige = prestigeAmount
     let exponent = new ExpantaNum(0.65)
 
-    if (hasMilestone("p", 4)) { 
+    // СИНХРОНИЗИРОВАНО: изменен индекс вехи с 4 на 3
+    if (hasMilestone("p", 3)) { 
         exponent = new ExpantaNum(0.9) // УСИЛЕНО ДО 0.9
         if (prestigeAmount.gt(new ExpantaNum(10000))) {
             let excess = prestigeAmount.sub(new ExpantaNum(10000))

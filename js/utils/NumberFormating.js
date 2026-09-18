@@ -28,54 +28,46 @@ function sumValues(x) {
     return x.reduce((a, b) => ExpantaNum.add(a, b))
 }
 
-function format(decimal, precision = 2, small=false) {
+function format(decimal, precision = 2, small = false) {
     small = small || modInfo.allowSmall
     decimal = new ExpantaNum(decimal)
-    let fmt = decimal.toString(precision)
-    if(decimal.gte(1000)&&decimal.lt("10^^5")){
-      let powers = fmt.split("e")
-      for (let i in powers){
-        let x=Number(powers[i])
-        if(Number.isNaN(x)||x==Infinity){}
-        else if(Number(powers[i])>(1000)){
-          let st = powers[i]
-          let s=st.length
-          if(s==4){st=st[0]+","+st.substr(1,3)}
-          if(s==5){st=st.substr(0,2)+","+st.substr(2,3)}
-          if(s==6){st=st.substr(0,3)+","+st.substr(3,3)}
-          if(s==7){st=st.substr(0,1)+","+st.substr(1,3)+","+st.substr(4,3)}
-          if(s==8){st=st.substr(0,2)+","+st.substr(2,3)+","+st.substr(5,3)}
-          if(s==9){st=st.substr(0,3)+","+st.substr(3,3)+","+st.substr(6,3)}
-          powers[i]=st
+
+    // 1. Базовые проверки на некорректные значения, ноль и минус
+    if (decimal.eq(0)) return "0"
+    if (decimal.lt(0)) return "-" + format(decimal.neg(), precision, small)
+
+    // Порог переключения на научную нотацию (1,000,000)
+    let threshold = new ExpantaNum(1000000)
+
+    // 2. НАУЧНАЯ НОТАЦИЯ ДЛЯ БОЛЬШИХ ЧИСЕЛ (>= 1,000,000)
+    if (decimal.gte(threshold)) {
+        // Если число уходит в супер-гигантские слои ExpantaNum (больше 1e9e15)
+        if (decimal.layer > 1) {
+            return decimal.toString()
         }
-      }
-      fmt=powers.join("e")
-      return fmt}
-    else if(precision>0){
-      if(fmt.split(".").length==1){fmt=fmt+".00"}
-      else if(fmt.split(".")[1].length==1){fmt=fmt+"0"}
+
+        // Берем чистые значения мантиссы и экспоненты напрямую из ExpantaNum
+        let exp = decimal.log10().floor()
+        let mantissa = decimal.div(ExpantaNum.pow(10, exp))
+
+        // Корректируем возможную погрешность (чтобы не выводилось 10.00e5 вместо 1.00e6)
+        if (mantissa.gte(10)) {
+            mantissa = mantissa.div(10)
+            exp = exp.add(1)
+        }
+
+        return mantissa.toNumber().toFixed(precision) + "e" + exp.toString()
     }
-    else if(decimal.lte(0.001) &&small&&decimal.gt(0)){
-        decimal = decimal.pow(-1)
-        let val = ""
-    if (decimal.lt("1e1000")){
-        val = exponentialFormat(decimal, precision)
-        return val.replace(/([^(?:e|F)]*)$/, '-$1')
+
+    // 3. БЕЗОПАСНЫЙ ВЫВОД ДЛЯ МАЛЕНЬКИХ ЧИСЕЛ (< 1,000,000)
+    // Превращаем маленькое ExpantaNum в обычное JavaScript число для вывода без багов
+    let num = decimal.toNumber()
+    
+    if (precision === 0) {
+        return Math.floor(num).toString()
     }
-    else   
-        return format(decimal, precision) + "⁻¹"
-    }
-    if(fmt.split(".").length>1&&precision==0){
-        fmt=fmt.split(".")[0]
-      
-    }
-  if(fmt.split(".").length>1&&precision>0){
-    if(fmt.split(".")[1].length>precision){
-      let f=fmt.split(".")
-      fmt=f[0]+"."+f[1].substring(0,precision)
-    }
-  }
-  return fmt
+    
+    return num.toFixed(precision)
 }
 
 function formatWhole(decimal) {
