@@ -11,35 +11,25 @@ let modInfo = {
 
 // Версия игры
 let VERSION = {
-	num: "0.2.1",
-	name: "Mini Bugfix",
+	num: "0.3",
+	name: "Omega Automation & Balance Update",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
-	<h3>v0.2.1 - Mini Bugfix</h3><br>
-		- Fixed a critical progression bug where point generation would lock at 0 on start.<br>
-		- Rearranged Milestones 3 and 4 for smoother scaling.<br>
-		- Synchronized Upgrade 14 calculations with the new milestones layout.<br>
-		- Fixed number notation! Replaced chaotic comma placement and long decimals with clean scientific notation (e.g. 1.00e6) after 1,000,000.<br><br>
-	<h3>v0.2 - Omega Update!</h3><br>
-		- Added 2 Milestones<br>
-		- Added 1 layer<br>
-		- Added 1 upgrade<br>
-		- Endgame 1e9 points,1e6 prestige points,10 omega points<br><br>
-	<h3>v0.1 - The Beginning</h3><br>
-		- Added the first Prestige layer.<br>
-		- Created 4 basic upgrades (11-14) with progressive unlocking.<br>
-		- Implemented a smooth softcap system for Upgrade 14.<br>
-		- Added 2 powerful milestones at 100 and 1000 points.<br>
-		- Fully integrated ExpantaNum math engine.<br>
-		- Endgame 100000 points`
-
+	<h3>v0.3 - The Automation Era (In Progress)</h3><br>
+		- Added a new Omega Milestone at 1e222 Omega Points for 5% passive generation.<br>
+		- Added Omega Upgrade 14 at 1e272 Omega Points (Points boost Omega gain by ^0.12).<br>
+		- Added Omega Upgrade 13 at 1e100 Omega Points to completely automate Prestige upgrades.<br>
+		- Implemented a smooth sequential unlock system for Omega Upgrades (11 -> 12 -> 13 -> 14).<br>
+		- Added a new Prestige Milestone at 1e49 points (grants x34 points boost, but hardcaps Upgrade 14 to ^0.65).<br>
+		- Added a smooth multi-stage softcap to Omega points effect to prevent infinite mathematical explosion.<br>
+		- Added Hardcap and Endgame at exactly 1e308 Omega Points.`
 
 let winText = `Congratulations! You have reached the end and beaten this game, but for now...`
 
-// Функция проверки конца игры (1e9 обычных очков)
+// Функция проверки конца игры (1e308 очков Омеги)
 function isEndgame() {
-	return player.points.gte(new ExpantaNum("1000000000")) // 1e9 обычных очков
+	return player.o && player.o.unlocked && player.o.points.gte(new ExpantaNum("1e308"))
 }
 
 
@@ -77,11 +67,26 @@ function getPointGen() {
 		gain = gain.pow(new ExpantaNum(1.4)) 
 	}
 
-	// 4. Математика 14-го апгрейда С ДИНАМИЧЕСКИМ СОФТКАПОМ И ИЗМЕНЕНИЕМ СТЕПЕНИ
+		// 4. Математика 14-го апгрейда С ДИНАМИЧЕСКИМ СОФТКАПОМ И ИЗМЕНЕНИЕМ СТЕПЕНИ
 	if (hasUpgrade("p", 14)) {
 		let prestigeAmount = player.p.points
 		let effPrestige = prestigeAmount
 		let exponent = new ExpantaNum(0.65)
+
+		// ВСТАВЛЕНО СЮДА: Если открыта 5-я веха, софткап жестко режется до 0.65
+		if (hasMilestone("p", 5)) {
+			exponent = new ExpantaNum(0.65)
+		}
+		else if (hasMilestone("p", 3)) { 
+			exponent = new ExpantaNum(0.9) 
+			if (prestigeAmount.gt(new ExpantaNum(10000))) {
+				let excess = prestigeAmount.sub(new ExpantaNum(10000))
+				let softcappedExcess = excess.pow(new ExpantaNum(0.7)) 
+				effPrestige = new ExpantaNum(10000).add(softcappedExcess)
+			}
+		} 
+// ... дальше идет ваш стандартный код else if (hasMilestone("p", 1)) и т.д.
+
 
 		// СИНХРОНИЗИРОВАНО: теперь это веха 3 (500k points)
 		if (hasMilestone("p", 3)) { 
@@ -121,15 +126,66 @@ function getPointGen() {
 	if (hasMilestone("p", 2)) {
 		gain = gain.pow(new ExpantaNum(1.25))
 	}
+	// ВСТАВЛЕНО СЮДА: Бонус от новой 5-й вехи престижа (х34 очков)
+	if (hasMilestone("p", 5)) {
+		gain = gain.mul(new ExpantaNum(34))
+	}
 
-	// 8. Бонус от очков нового слоя Омега (очки + 1)
+				// 8. БОНУС СЛОЯ ОМЕГА С ЧЕТЫРЕХСТУПЕНЧАТЫМ СОФТКАПОМ (ДОБАВЛЕН ПОРОГ 1e303 С ^0.1)
 	if (player.o && player.o.unlocked) {
-		let omegaBonus = player.o.points.add(new ExpantaNum(1))
+		let omegaAmount = player.o.points
+		let effOmega = omegaAmount
+
+		let limit1 = new ExpantaNum("1e10")
+		let limit2 = new ExpantaNum("1e50")
+		let limit3 = new ExpantaNum("1e308")
+		let limit4 = new ExpantaNum("1e303") // Новый порог перед финалом
+
+		// 1-й порог: после 1e10 рост замедляется до ^0.85
+		if (omegaAmount.gt(limit1)) {
+			let excess1 = omegaAmount.sub(limit1)
+			effOmega = limit1.add(excess1.pow(0.85))
+		}
+
+		// 2-й порог: после 1e50 рост замедляется до ^0.7
+		if (omegaAmount.gt(limit2)) {
+			let baseAtLimit2 = limit1.add(limit2.sub(limit1).pow(0.85))
+			let excess2 = omegaAmount.sub(limit2)
+			effOmega = baseAtLimit2.add(excess2.pow(0.7))
+		}
+
+		// 3-й порог (НОВЫЙ): после 1e303 рост сильно падает до ^0.1
+		if (omegaAmount.gt(limit4)) {
+			let baseAtLimit2 = limit1.add(limit2.sub(limit1).pow(0.85))
+			let baseAtLimit4 = baseAtLimit2.add(limit4.sub(limit2).pow(0.7))
+			let excess4 = omegaAmount.sub(limit4)
+			effOmega = baseAtLimit4.add(excess4.pow(0.1))
+		}
+
+		// 4-й порог: после 1e308 рост жестко замедляется до ^0.5
+		if (omegaAmount.gt(limit3)) {
+			let baseAtLimit2 = limit1.add(limit2.sub(limit1).pow(0.85))
+			let baseAtLimit4 = baseAtLimit2.add(limit4.sub(limit2).pow(0.7))
+			let baseAtLimit3 = baseAtLimit4.add(limit3.sub(limit4).pow(0.1))
+			let excess3 = omegaAmount.sub(limit3)
+			effOmega = baseAtLimit3.add(excess3.pow(0.5))
+		}
+
+		let omegaBonus = effOmega.add(new ExpantaNum(1)).pow(1)
 		gain = gain.mul(omegaBonus)
+	}
+
+
+
+
+	// ВСТАВЛЕНО СЮДА: Эффект 12-го апгрейда Омеги (Степень ^1.33 для обычных очков)
+	if (hasUpgrade("o", 12)) {
+		gain = gain.pow(new ExpantaNum(1.33))
 	}
 
 	return gain
 }
+
 
 // Вспомогательная функция отображения 14-го улучшения (СИНХРОНИЗИРОВАНО НА 0.9)
 function getUpgrade14Effect() {
@@ -137,15 +193,20 @@ function getUpgrade14Effect() {
     let effPrestige = prestigeAmount
     let exponent = new ExpantaNum(0.65)
 
-    // СИНХРОНИЗИРОВАНО: изменен индекс вехи с 4 на 3
-    if (hasMilestone("p", 3)) { 
-        exponent = new ExpantaNum(0.9) // УСИЛЕНО ДО 0.9
+    // ВСТАВЛЕНО СЮДА: Синхронизация отображения для 5-й вехи
+    if (hasMilestone("p", 5)) {
+        exponent = new ExpantaNum(0.65)
+    }
+    else if (hasMilestone("p", 3)) { 
+        exponent = new ExpantaNum(0.9)
         if (prestigeAmount.gt(new ExpantaNum(10000))) {
             let excess = prestigeAmount.sub(new ExpantaNum(10000))
             let softcappedExcess = excess.pow(new ExpantaNum(0.7))
             effPrestige = new ExpantaNum(10000).add(softcappedExcess)
         }
-    } 
+    }
+// ... дальше идет ваш стандартный код else if (hasMilestone("p", 1)) и т.д.
+
     else if (hasMilestone("p", 1)) {
         exponent = new ExpantaNum(0.8)
     } 

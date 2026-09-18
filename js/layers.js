@@ -17,7 +17,7 @@ addLayer("p", {
     type: "normal", 
     exponent: 0.5, 
     
-    // Модификаторы получения очков престижа
+        // Модификаторы получения очков престижа
     gainMult() { 
         let mult = new ExpantaNum(1)
         
@@ -32,18 +32,47 @@ addLayer("p", {
         if (hasMilestone("p", 3)) {
             mult = mult.mul(new ExpantaNum(5)) 
         }
+
+        // ВСТАВЛЕНО СЮДА: Если куплен апгрейд Омеги 11, умножаем прирост престижа на его эффект
+        if (hasUpgrade("o", 11)) {
+            mult = mult.mul(upgradeEffect("o", 11))
+        }
         
         return mult
     },
-    
+
+   // Стало (замените на это):
     gainExp() { 
-        return new ExpantaNum(1)
+        let exp = new ExpantaNum(1)
+        // Если куплен 12-й апгрейд Омеги, увеличиваем экспоненту престиж-очков до 1.11
+        if (hasUpgrade("o", 12)) {
+            exp = exp.mul(new ExpantaNum(1.11))
+        }
+        return exp
     },
     row: 0, 
     hotkeys: [
         {key: "p", description: "P: Reset for prestige points", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
     ],
     layerShown(){ return true },
+        // Автоматический прирост престиж-очков и покупка апгрейдов
+    update(diff) {
+        if (player.o && player.o.unlocked && hasMilestone("o", 0)) {
+            let gain = tmp.p.resetGain
+            if (gain.gt(0)) {
+                player.p.points = player.p.points.add(gain.mul(diff))
+            }
+        }
+        
+        // ВСТАВЛЕНО СЮДА: Если куплен 13-й апгрейд Омеги, автоматически покупаем все апгрейды престижа
+        if (hasUpgrade("o", 13)) {
+            buyUpgrade("p", 11);
+            buyUpgrade("p", 12);
+            buyUpgrade("p", 13);
+            buyUpgrade("p", 14);
+            buyUpgrade("p", 15);
+        }
+    },
 
         // СПИСОК ВЕХ (MILESTONES)
     milestones: {
@@ -71,7 +100,19 @@ addLayer("p", {
             requirementDescription: "10,000 prestige points", // ТЕПЕРЬ ЧЕТВЕРТАЯ ВЕХА
             effectDescription: "Prestige point gain is multiplied by 5x.",
             done() { return player.p.points.gte(new ExpantaNum(10000)) } 
+        },
+        5: {
+            requirementDescription: "10,000 prestige points",
+            effectDescription: "Prestige point gain is multiplied by 5x.",
+            done() { return player.p.points.gte(new ExpantaNum(10000)) } 
+        },
+        // ВСТАВЛЕНО СЮДА: Новая 5-я веха престижа
+        5: {
+            requirementDescription: "1e49 points",
+            effectDescription: "Gain 34x points, but Upgrade 14 softcap is reduced to ^0.65.",
+            done() { return player.points.gte(new ExpantaNum("1e49")) }
         }
+
     },
 
     // СПИСОК УЛУЧШЕНИЙ (UPGRADES)
@@ -141,8 +182,16 @@ addLayer("o", {
     type: "normal", 
     exponent: 0.5, 
     
+   // Модификаторы получения очков Омеги
     gainMult() { 
-        return new ExpantaNum(1)
+        let mult = new ExpantaNum(1)
+        
+        // ВСТАВЛЕНО СЮДА: Если куплен Апгрейд 14 Омеги, умножаем её прирост на его эффект
+        if (hasUpgrade("o", 14)) {
+            mult = mult.mul(upgradeEffect("o", 14))
+        }
+        
+        return mult
     },
     gainExp() { 
         return new ExpantaNum(1)
@@ -156,10 +205,123 @@ addLayer("o", {
         return hasUpgrade("p", 15) 
     },
 
-    effect() {
-        return player.o.points.add(new ExpantaNum(1))
+        update(diff) {
+        if (hasMilestone("o", 1)) {
+            let gain = tmp.o.resetGain
+            player.o.points = player.o.points.add(gain.mul(diff).mul(0.05))
+        }
+
+		// ВСТАВЛЕНО СЮДА: Жесткий хардкап Омеги на значении 1e308
+		if (player.o.points.gte(new ExpantaNum("1e308"))) {
+			player.o.points = new ExpantaNum("1e308")
+		}
+    },
+
+
+
+               effect() {
+        let omegaAmount = player.o.points
+        let effOmega = omegaAmount
+
+        let limit1 = new ExpantaNum("1e10")
+        let limit2 = new ExpantaNum("1e50")
+        let limit3 = new ExpantaNum("1e308")
+        let limit4 = new ExpantaNum("1e303")
+
+        if (omegaAmount.gt(limit1)) {
+            let excess1 = omegaAmount.sub(limit1)
+            effOmega = limit1.add(excess1.pow(0.85))
+        }
+        if (omegaAmount.gt(limit2)) {
+            let baseAtLimit2 = limit1.add(limit2.sub(limit1).pow(0.85))
+            let excess2 = omegaAmount.sub(limit2)
+            effOmega = baseAtLimit2.add(excess2.pow(0.7))
+        }
+        if (omegaAmount.gt(limit4)) {
+            let baseAtLimit2 = limit1.add(limit2.sub(limit1).pow(0.85))
+            let baseAtLimit4 = baseAtLimit2.add(limit4.sub(limit2).pow(0.7))
+            let excess4 = omegaAmount.sub(limit4)
+            effOmega = baseAtLimit4.add(excess4.pow(0.1))
+        }
+        if (omegaAmount.gt(limit3)) {
+            let baseAtLimit2 = limit1.add(limit2.sub(limit1).pow(0.85))
+            let baseAtLimit4 = baseAtLimit2.add(limit4.sub(limit2).pow(0.7))
+            let baseAtLimit3 = baseAtLimit4.add(limit3.sub(limit4).pow(0.1))
+            let excess3 = omegaAmount.sub(limit3)
+            effOmega = baseAtLimit3.add(excess3.pow(0.5))
+        }
+
+        return effOmega.add(new ExpantaNum(1)).pow(1)
     },
     effectDescription() {
-        return "which are multiplying your point generation by x" + format(tmp.o.effect)
+        let omegaAmount = player.o.points
+        let softcapText = ""
+        
+        if (omegaAmount.gt(new ExpantaNum("1e308"))) softcapText = " (Hardcapped)"
+        else if (omegaAmount.gt(new ExpantaNum("1e303"))) softcapText = " (Softcapped: Growth ^0.1)"
+        else if (omegaAmount.gt(new ExpantaNum("1e50"))) softcapText = " (Softcapped: Growth ^0.7)"
+        else if (omegaAmount.gt(new ExpantaNum("1e10"))) softcapText = " (Softcapped: Growth ^0.85)"
+        
+        return "which are multiplying your point generation by x" + format(tmp.o.effect) + softcapText
+    },
+
+
+
+            // СПИСОК ВЕХ (MILESTONES) СЛОЯ ОМЕГА
+    milestones: {
+        0: {
+            requirementDescription: "10 Omega Points",
+            effectDescription: "Unlock 100% passive Prestige generation per second without resetting.",
+            done() { return player.o.points.gte(new ExpantaNum(10)) }
+        },
+        // ВСТАВЛЕНО СЮДА: Новая 1-я веха Омеги
+        1: {
+            requirementDescription: "1e222 Omega Points",
+            effectDescription: "Gain 5% of Omega points gained on reset per second passively without resetting.",
+            done() { return player.o.points.gte(new ExpantaNum("1e222")) }
+        }
+    },
+
+      // АПГРЕЙДЫ СЛОЯ ОМЕГА
+    upgrades: {
+        11: {
+            title: "Omega Singularity",
+            description() {
+                return "Total Omega points multiply Prestige point gain to the power of 0.35. Current Multiplier: x" + format(this.effect())
+            },
+            cost: new ExpantaNum(50),
+            effect() {
+                let totalOmega = player.o.best || new ExpantaNum(0)
+                return totalOmega.add(new ExpantaNum(1)).pow(new ExpantaNum(0.35))
+            },
+            unlocked() { return player.o.unlocked }
+        },
+        12: {
+            title: "Omega Transcendence",
+            description: "Points generation is raised to the power of 1.33, and Prestige points gain is raised to the power of 1.11.",
+            cost: new ExpantaNum(1000),
+            unlocked() { return hasUpgrade("o", 11) }
+        },
+        13: {
+            title: "Prestige Automation",
+            description: "Automatically purchases all 5 Prestige upgrades.",
+            cost: new ExpantaNum("1e100"),
+            unlocked() { return hasUpgrade("p", 12) } // Открывается после 12-го апгрейда
+        },
+               // Обновленный 14-й апгрейд Омеги сбалансированный до ^0.008
+        14: {
+            title: "Infinite Convergence",
+            description() {
+                return "Points boost Omega points gain to the power of 0.0085. Current Multiplier: x" + format(this.effect())
+            },
+            cost: new ExpantaNum("1e272"),
+            effect() {
+                // Изменено с 0.12 на 0.008 для плавного финального баланса
+                return player.points.add(new ExpantaNum(1)).pow(new ExpantaNum(0.0085))
+            },
+            unlocked() { return hasUpgrade("o", 13) } 
+        }
+
     }
+
 })
