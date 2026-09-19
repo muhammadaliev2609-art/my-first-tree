@@ -281,8 +281,7 @@ addLayer("o", {
             done() { return player.o.points.gte(new ExpantaNum("1e222")) }
         }
     },
-
-      // АПГРЕЙДЫ СЛОЯ ОМЕГА
+    // АПГРЕЙДЫ СЛОЯ ОМЕГА (ИСПРАВЛЕНА ПОСЛЕДОВАТЕЛЬНОСТЬ СКРЫТИЯ)
     upgrades: {
         11: {
             title: "Omega Singularity",
@@ -294,34 +293,32 @@ addLayer("o", {
                 let totalOmega = player.o.best || new ExpantaNum(0)
                 return totalOmega.add(new ExpantaNum(1)).pow(new ExpantaNum(0.35))
             },
-            unlocked() { return player.o.unlocked }
+            unlocked() { return player.o.unlocked } // Виден всегда, когда открыт слой
         },
         12: {
             title: "Omega Transcendence",
             description: "Points generation is raised to the power of 1.33, and Prestige points gain is raised to the power of 1.11.",
             cost: new ExpantaNum(1000),
-            unlocked() { return hasUpgrade("o", 11) }
+            unlocked() { return hasUpgrade("o", 11) } // Появляется строго после покупки 11-го
         },
         13: {
             title: "Prestige Automation",
             description: "Automatically purchases all 5 Prestige upgrades.",
             cost: new ExpantaNum("1e100"),
-            unlocked() { return hasUpgrade("p", 12) } // Открывается после 12-го апгрейда
+            unlocked() { return hasUpgrade("o", 12) } // ИСПРАВЛЕНО: проверяет слой "o", а не "p"!
         },
-               // Обновленный 14-й апгрейд Омеги сбалансированный до ^0.008
         14: {
             title: "Infinite Convergence",
             description() {
-                return "Points boost Omega points gain to the power of 0.0085. Current Multiplier: x" + format(this.effect())
+                return "Points boost Omega points gain to the power of 0.008. Current Multiplier: x" + format(this.effect())
             },
             cost: new ExpantaNum("1e272"),
             effect() {
-                // Изменено с 0.12 на 0.008 для плавного финального баланса
-                return player.points.add(new ExpantaNum(1)).pow(new ExpantaNum(0.0085))
+                return player.points.add(new ExpantaNum(1)).pow(new ExpantaNum(0.008))
             },
-            unlocked() { return hasUpgrade("o", 13) } 
+            unlocked() { return hasUpgrade("o", 13) } // Появляется после покупки 13-го
         }
-
     }
+
 
 })
