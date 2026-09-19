@@ -7,7 +7,7 @@ addLayer("p", {
     position: 0, 
     startData() { return {
         unlocked: true,
-		points: new ExpantaNum(0),
+        points: new ExpantaNum(0),
     }},
     color: "#4BDC13",
     requires: new ExpantaNum(10), 
@@ -21,304 +21,362 @@ addLayer("p", {
     gainMult() { 
         let mult = new ExpantaNum(1)
         
-        if (hasMilestone("p", 0)) {
-            mult = mult.mul(new ExpantaNum(1.5))
-        }
+        // Старые модификаторы (Ряды 1-5)
+        if (hasUpgrade("p", 14)) mult = mult.mul(upgradeEffect("p", 14))
+        if (hasUpgrade("p", 23)) mult = mult.mul(2)
+        if (hasUpgrade("p", 32)) mult = mult.mul(upgradeEffect("p", 32))
+        if (hasUpgrade("p", 34)) mult = mult.mul(upgradeEffect("p", 34))
+        if (hasUpgrade("p", 43)) mult = mult.mul(upgradeEffect("p", 43))
+        if (hasUpgrade("p", 52)) mult = mult.mul(10)
 
-        if (hasMilestone("p", 2)) {
-            mult = mult.mul(new ExpantaNum(4)) 
-        }
+        // НОВЫЕ модификаторы престижа (Ряды 6-13)
+        if (hasUpgrade("p", 62)) mult = mult.mul(upgradeEffect("p", 62))
+        if (hasUpgrade("p", 74)) mult = mult.mul(1000)
+        if (hasUpgrade("p", 83)) mult = mult.mul(upgradeEffect("p", 83))
+        if (hasUpgrade("p", 92)) mult = mult.mul(upgradeEffect("p", 92))
+        if (hasUpgrade("p", 104)) mult = mult.mul(1e6)
+        if (hasUpgrade("p", 113)) mult = mult.mul(upgradeEffect("p", 113))
+        if (hasUpgrade("p", 124)) mult = mult.mul(new ExpantaNum("1e10"))
 
-        if (hasMilestone("p", 3)) {
-            mult = mult.mul(new ExpantaNum(5)) 
-        }
-
-        // ВСТАВЛЕНО СЮДА: Если куплен апгрейд Омеги 11, умножаем прирост престижа на его эффект
-        if (hasUpgrade("o", 11)) {
-            mult = mult.mul(upgradeEffect("o", 11))
-        }
-        
         return mult
     },
 
-   // Стало (замените на это):
     gainExp() { 
         let exp = new ExpantaNum(1)
-        // Если куплен 12-й апгрейд Омеги, увеличиваем экспоненту престиж-очков до 1.11
-        if (hasUpgrade("o", 12)) {
-            exp = exp.mul(new ExpantaNum(1.11))
-        }
+        
+        // Старые прорывы экспоненты
+        if (hasUpgrade("p", 24)) exp = exp.add(0.1)
+        if (hasUpgrade("p", 44)) exp = exp.add(0.1)
+        
+        // НОВЫЕ прорывы экспоненты
+        if (hasUpgrade("p", 64)) exp = exp.add(0.1)
+        if (hasUpgrade("p", 94)) exp = exp.add(0.1)
+        if (hasUpgrade("p", 122)) exp = exp.add(0.1)
+        
         return exp
     },
+
+    gainExp() { 
+        let exp = new ExpantaNum(1)
+        // Старое улучшение 24
+        if (hasUpgrade("p", 24)) exp = exp.add(0.1)
+        // Новое улучшение 44: Добавляет еще +0.05 к экспоненте престижа
+        if (hasUpgrade("p", 44)) exp = exp.add(0.1)
+        return exp
+    },
+
     row: 0, 
     hotkeys: [
         {key: "p", description: "P: Reset for prestige points", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
     ],
+    
     layerShown(){ return true },
-        // Автоматический прирост престиж-очков и покупка апгрейдов
-    update(diff) {
-        if (player.o && player.o.unlocked && hasMilestone("o", 0)) {
-            let gain = tmp.p.resetGain
-            if (gain.gt(0)) {
-                player.p.points = player.p.points.add(gain.mul(diff))
-            }
-        }
-        
-        // ВСТАВЛЕНО СЮДА: Если куплен 13-й апгрейд Омеги, автоматически покупаем все апгрейды престижа
-        if (hasUpgrade("o", 13)) {
-            buyUpgrade("p", 11);
-            buyUpgrade("p", 12);
-            buyUpgrade("p", 13);
-            buyUpgrade("p", 14);
-            buyUpgrade("p", 15);
-        }
-    },
 
-        // СПИСОК ВЕХ (MILESTONES)
-    milestones: {
-        0: {
-            requirementDescription: "100 points",
-            effectDescription: "You hit a milestone! Gain 1.5x points and prestige points.",
-            done() { return player.points.gte(new ExpantaNum(100)) }
-        },
-        1: {
-            requirementDescription: "1000 points",
-            effectDescription: "This milestone is insane!!! Removes softcap from Upgrade 14, increases its exponent from 0.65 to 0.8, and grants 7x points.",
-            done() { return player.points.gte(new ExpantaNum(1000)) }
-        },
-        2: {
-            requirementDescription: "1000 prestige points",
-            effectDescription: "Gain ^1.25 points and 4x prestige points.",
-            done() { return player.p.points.gte(new ExpantaNum(1000)) }
-        },
-        3: {
-            requirementDescription: "500,000 points", // ТЕПЕРЬ ТРЕТЬЯ ВЕХА
-            effectDescription: "Did you enjoy upgrading Upgrade 14? Then take this: Upgrade 14 is buffed from ^0.80 to ^0.9, but a softcap of ^0.7 applies after 10000 prestige points.",
-            done() { return player.points.gte(new ExpantaNum(500000)) } 
-        },
-        4: {
-            requirementDescription: "10,000 prestige points", // ТЕПЕРЬ ЧЕТВЕРТАЯ ВЕХА
-            effectDescription: "Prestige point gain is multiplied by 5x.",
-            done() { return player.p.points.gte(new ExpantaNum(10000)) } 
-        },
-        5: {
-            requirementDescription: "10,000 prestige points",
-            effectDescription: "Prestige point gain is multiplied by 5x.",
-            done() { return player.p.points.gte(new ExpantaNum(10000)) } 
-        },
-        // ВСТАВЛЕНО СЮДА: Новая 5-я веха престижа
-        5: {
-            requirementDescription: "1e49 points",
-            effectDescription: "Gain 34x points, but Upgrade 14 softcap is reduced to ^0.65.",
-            done() { return player.points.gte(new ExpantaNum("1e49")) }
-        }
-
-    },
-
-    // СПИСОК УЛУЧШЕНИЙ (UPGRADES)
+    // Улучшения слоя Престиж (По 4 штуки в ряд)
     upgrades: {
+        // --- РЯД 1 ---
         11: {
-            title: "Start Generation",
-            description: "Enables passive income. Grants +1 point per second.",
+            title: "Генерация очков",
+            description: "Производит обычные очки каждую секунду в зависимости от ваших очков престижа.",
             cost: new ExpantaNum(1),
+            effect() { return player.p.points.add(1).pow(0.5) },
+            effectDisplay() { return format(upgradeEffect(this.layer, this.id)) + "/sec" },
         },
         12: {
-            title: "Double the Flow",
-            description: "Multiplies total point generation by 2.",
+            title: "Ускорение мыслей",
+            description: "Умножает генерацию обычных очков на 2.",
             cost: new ExpantaNum(2),
-            unlocked() { return hasUpgrade("p", 11) },
+            unlocked() { return hasUpgrade("p", 11) }
         },
         13: {
-            title: "Weak Boost?",
-            description: "Raises total point generation to the power of 1.4.", 
+            title: "Синергия очков",
+            description: "Обычные очки умножают сами себя.",
             cost: new ExpantaNum(5),
             unlocked() { return hasUpgrade("p", 12) },
+            effect() { return player.points.add(1).log10().add(1).pow(0.5) },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
         },
         14: {
-            title: "Prestige Synergy",
-            effect() { return getUpgrade14Effect().bonus }, // ИСПРАВЛЕНО: добавлен расчет эффекта для TMT системы
-            description() { 
-                let effect = getUpgrade14Effect()
-                let exponentText = format(effect.exponent)
-                let formattedBonus = format(effect.bonus)
-                
-                let softcapText = "Softcap ^0.4 applies after 10 prestige points."
-                if (hasMilestone("p", 4)) { 
-                    softcapText = "Softcap ^0.7 applies after 10000 prestige points."
-                } else if (hasMilestone("p", 1)) {
-                    softcapText = "Softcap is removed!"
-                }
-
-                return "Prestige points increase point generation by (Prestige Points + 1)^" + exponentText + ". " + softcapText + " Current Multiplier: x" + formattedBonus
-            },
-            cost: new ExpantaNum(7),
+            title: "Обратная связь",
+            description: "Обычные очки ускоряют получение очков престижа.",
+            cost: new ExpantaNum(10),
             unlocked() { return hasUpgrade("p", 13) },
+            effect() { return player.points.add(1).log10().pow(0.3).add(1) },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
         },
-        15: {
-            title: "Unlock the next layer",
-            description: "Allows you to progress further and see what lies beyond.",
-            cost: new ExpantaNum(100000), 
-            unlocked() { return hasUpgrade("p", 14) }, 
+
+        // --- РЯД 2 ---
+        21: {
+            title: "Престижный буст",
+            description: "Очки престижа умножают генерацию обычных очков.",
+            cost: new ExpantaNum(25),
+            unlocked() { return hasUpgrade("p", 14) },
+            effect() { return player.p.points.add(1).pow(0.4) },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
         },
-    },
-})
-
-// ==========================================
-// СЛОЙ 2: ОМЕГА (OMEGA)
-// ==========================================
-addLayer("o", {
-    name: "omega", 
-    symbol: "Ω", 
-    position: 0, 
-    startData() { return {
-        unlocked: false, 
-		points: new ExpantaNum(0),
-    }},
-    color: "#8A2BE2", 
-    requires: new ExpantaNum(100000), 
-    resource: "omega points", 
-    baseResource: "prestige points", 
-    baseAmount() { return player.p.points }, 
-    type: "normal", 
-    exponent: 0.5, 
-    
-   // Модификаторы получения очков Омеги
-    gainMult() { 
-        let mult = new ExpantaNum(1)
-        
-        // ВСТАВЛЕНО СЮДА: Если куплен Апгрейд 14 Омеги, умножаем её прирост на его эффект
-        if (hasUpgrade("o", 14)) {
-            mult = mult.mul(upgradeEffect("o", 14))
-        }
-        
-        return mult
-    },
-    gainExp() { 
-        return new ExpantaNum(1)
-    },
-    row: 1, 
-    hotkeys: [
-        {key: "o", description: "O: Reset for omega points", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
-    ],
-    
-    layerShown() { 
-        return hasUpgrade("p", 15) 
-    },
-
-        update(diff) {
-        if (hasMilestone("o", 1)) {
-            let gain = tmp.o.resetGain
-            player.o.points = player.o.points.add(gain.mul(diff).mul(0.05))
-        }
-
-		// ВСТАВЛЕНО СЮДА: Жесткий хардкап Омеги на значении 1e308
-		if (player.o.points.gte(new ExpantaNum("1e308"))) {
-			player.o.points = new ExpantaNum("1e308")
-		}
-    },
-
-
-
-               effect() {
-        let omegaAmount = player.o.points
-        let effOmega = omegaAmount
-
-        let limit1 = new ExpantaNum("1e10")
-        let limit2 = new ExpantaNum("1e50")
-        let limit3 = new ExpantaNum("1e308")
-        let limit4 = new ExpantaNum("1e303")
-
-        if (omegaAmount.gt(limit1)) {
-            let excess1 = omegaAmount.sub(limit1)
-            effOmega = limit1.add(excess1.pow(0.85))
-        }
-        if (omegaAmount.gt(limit2)) {
-            let baseAtLimit2 = limit1.add(limit2.sub(limit1).pow(0.85))
-            let excess2 = omegaAmount.sub(limit2)
-            effOmega = baseAtLimit2.add(excess2.pow(0.7))
-        }
-        if (omegaAmount.gt(limit4)) {
-            let baseAtLimit2 = limit1.add(limit2.sub(limit1).pow(0.85))
-            let baseAtLimit4 = baseAtLimit2.add(limit4.sub(limit2).pow(0.7))
-            let excess4 = omegaAmount.sub(limit4)
-            effOmega = baseAtLimit4.add(excess4.pow(0.1))
-        }
-        if (omegaAmount.gt(limit3)) {
-            let baseAtLimit2 = limit1.add(limit2.sub(limit1).pow(0.85))
-            let baseAtLimit4 = baseAtLimit2.add(limit4.sub(limit2).pow(0.7))
-            let baseAtLimit3 = baseAtLimit4.add(limit3.sub(limit4).pow(0.1))
-            let excess3 = omegaAmount.sub(limit3)
-            effOmega = baseAtLimit3.add(excess3.pow(0.5))
-        }
-
-        return effOmega.add(new ExpantaNum(1)).pow(1)
-    },
-    effectDescription() {
-        let omegaAmount = player.o.points
-        let softcapText = ""
-        
-        if (omegaAmount.gt(new ExpantaNum("1e308"))) softcapText = " (Hardcapped)"
-        else if (omegaAmount.gt(new ExpantaNum("1e303"))) softcapText = " (Softcapped: Growth ^0.1)"
-        else if (omegaAmount.gt(new ExpantaNum("1e50"))) softcapText = " (Softcapped: Growth ^0.7)"
-        else if (omegaAmount.gt(new ExpantaNum("1e10"))) softcapText = " (Softcapped: Growth ^0.85)"
-        
-        return "which are multiplying your point generation by x" + format(tmp.o.effect) + softcapText
-    },
-
-
-
-            // СПИСОК ВЕХ (MILESTONES) СЛОЯ ОМЕГА
-    milestones: {
-        0: {
-            requirementDescription: "10 Omega Points",
-            effectDescription: "Unlock 100% passive Prestige generation per second without resetting.",
-            done() { return player.o.points.gte(new ExpantaNum(10)) }
-        },
-        // ВСТАВЛЕНО СЮДА: Новая 1-я веха Омеги
-        1: {
-            requirementDescription: "1e222 Omega Points",
-            effectDescription: "Gain 5% of Omega points gained on reset per second passively without resetting.",
-            done() { return player.o.points.gte(new ExpantaNum("1e222")) }
-        }
-    },
-    // АПГРЕЙДЫ СЛОЯ ОМЕГА (ИСПРАВЛЕНА ПОСЛЕДОВАТЕЛЬНОСТЬ СКРЫТИЯ)
-    upgrades: {
-        11: {
-            title: "Omega Singularity",
-            description() {
-                return "Total Omega points multiply Prestige point gain to the power of 0.35. Current Multiplier: x" + format(this.effect())
-            },
+        22: {
+            title: "Квадратный прогресс",
+            description: "Увеличивает базовую генерацию очков в зависимости от купленных улучшений.",
             cost: new ExpantaNum(50),
-            effect() {
-                let totalOmega = player.o.best || new ExpantaNum(0)
-                return totalOmega.add(new ExpantaNum(1)).pow(new ExpantaNum(0.35))
-            },
-            unlocked() { return player.o.unlocked } // Виден всегда, когда открыт слой
+            unlocked() { return hasUpgrade("p", 21) },
+            effect() { return new ExpantaNum(player.p.upgrades.length).pow(2).add(1) },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
         },
-        12: {
-            title: "Omega Transcendence",
-            description: "Points generation is raised to the power of 1.33, and Prestige points gain is raised to the power of 1.11.",
-            cost: new ExpantaNum(1000),
-            unlocked() { return hasUpgrade("o", 11) } // Появляется строго после покупки 11-го
+        23: {
+            title: "Двойной сброс",
+            description: "Удваивает прирост очков престижа.",
+            cost: new ExpantaNum(150),
+            unlocked() { return hasUpgrade("p", 22) }
         },
-        13: {
-            title: "Prestige Automation",
-            description: "Automatically purchases all 5 Prestige upgrades.",
-            cost: new ExpantaNum("1e100"),
-            unlocked() { return hasUpgrade("o", 12) } // ИСПРАВЛЕНО: проверяет слой "o", а не "p"!
+        24: {
+            title: "Прорыв экспоненты",
+            description: "Повышает экспоненту получения престижа на +0.05.",
+            cost: new ExpantaNum(500),
+            unlocked() { return hasUpgrade("p", 23) }
         },
-        14: {
-            title: "Infinite Convergence",
-            description() {
-                return "Points boost Omega points gain to the power of 0.008. Current Multiplier: x" + format(this.effect())
-            },
-            cost: new ExpantaNum("1e272"),
-            effect() {
-                return player.points.add(new ExpantaNum(1)).pow(new ExpantaNum(0.008))
-            },
-            unlocked() { return hasUpgrade("o", 13) } // Появляется после покупки 13-го
-        }
-    }
 
+                // --- РЯД 3 ---
+        31: { 
+            title: "Бесконечный поток", 
+            description: "Возводит генерацию обычных очков в степень 1.02.", // Снижено с 1.05 для защиты от взрыва
+            cost: new ExpantaNum(2000), 
+            unlocked() { return hasUpgrade("p", 24) } 
+        },
+        32: {
+            title: "Саморепликация",
+            description: "Очки престижа мягко умножают собственное получение.",
+            cost: new ExpantaNum(10000),
+            unlocked() { return hasUpgrade("p", 31) },
+            effect() { 
+                let eff = player.p.points.add(1).log10().add(1)
+                if (eff.gt(5)) eff = eff.log10().mul(3.5).add(2.5) // Софткап на престиж
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        33: { title: "Гипер-генератор", description: "Добавляет +250 к базовой генерации обычных очков.", cost: new ExpantaNum(50000), unlocked() { return hasUpgrade("p", 32) } },
+        34: {
+            title: "Абстрактный фокус",
+            description: "Обычные очки дают контролируемый буст к престижу.",
+            cost: new ExpantaNum(1000000),
+            unlocked() { return hasUpgrade("p", 33) },
+            effect() { 
+                let eff = player.points.add(1).log10().pow(0.4).add(1)
+                if (eff.gt(15)) eff = eff.log10().mul(8.5) // Софткап
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        // --- РЯД 4 (Цены увеличены в 5-10 раз) ---
+        41: {
+            title: "Энергия накопления",
+            description: "Умножает обычные очки на очень слабый корень из текущих очков.",
+            cost: new ExpantaNum(15000000), // Было 2млен, стало 15млн
+            unlocked() { return hasUpgrade("p", 34) },
+            effect() { 
+                let eff = player.points.add(1).pow(0.04)
+                if (eff.gt(20)) eff = eff.log10().mul(10).add(7)
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        42: { title: "Взрывное сжатие", description: "Умножает генерацию обычных очков на 3.", cost: new ExpantaNum(1e8), unlocked() { return hasUpgrade("p", 41) } }, // Было 15млн, стало 100млн
+        43: {
+            title: "Коллекционер",
+            description: "Каждое купленное улучшение престижа увеличивает прирост престижа на 5%.",
+            cost: new ExpantaNum(5e8), // Было 80млн, стало 500млн
+            unlocked() { return hasUpgrade("p", 42) },
+            effect() { return new ExpantaNum(1.05).pow(player.p.upgrades.length) },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        44: { title: "Второй прорыв", description: "Увеличивает экспоненту получения престиж-очков на +0.02.", cost: new ExpantaNum(3e9), unlocked() { return hasUpgrade("p", 43) } }, // Было 5e8, стало 3e9
 
+        // --- РЯД 5 (Цены увеличены в 5-10 раз) ---
+        51: {
+            title: "Масштабный сдвиг",
+            description: "Логарифм очков престижа плавно умножает обычные очки.",
+            cost: new ExpantaNum(4e10), // Было 5e9, стало 4e10
+            unlocked() { return hasUpgrade("p", 44) },
+            effect() { 
+                let eff = player.p.points.add(1).log10().pow(1.2).add(1)
+                if (eff.gt(50)) eff = eff.log10().mul(25)
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        52: { title: "Десятикратный скачок", description: "Умножает получение очков престижа на 4.", cost: new ExpantaNum(3e11), unlocked() { return hasUpgrade("p", 51) } }, // Было 4e10, стало 3e11
+        53: { title: "Истинное умножение", description: "Умножает обычные очки на фиксированный бонус (x50).", cost: new ExpantaNum(1e16), unlocked() { return hasUpgrade("p", 52) } }, // Было 5e11, стало 4e12
+        54: { title: "Коллапс реальности", description: "Возводит генерацию обычных очков в степень 1.02.", cost: new ExpantaNum(1.5e18), unlocked() { return hasUpgrade("p", 53) } }, // Было 2e13, стало 1.5e14
+
+        // --- РЯД 6 (Цены 61-62 увеличены, а 63 стала дешевле в 500 раз) ---
+        61: {
+            title: "Сингулярность",
+            description: "Обычные очки получают буст.",
+            cost: new ExpantaNum("1e21"), // Было 1e15, стало 1e16
+            unlocked() { return hasUpgrade("p", 54) },
+            effect() { 
+                let eff = player.points.add(1).log10().add(1).pow(0.5) 
+                if (eff.gt(100)) eff = eff.log10().mul(50)
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        62: {
+            title: "Антивещество",
+            description: "Очки престижа ускоряют собственную генерацию.",
+            cost: new ExpantaNum("2e23"), // Было 2e22, стало 2e23
+            unlocked() { return hasUpgrade("p", 61) },
+            effect() { 
+                let eff = player.p.points.add(1).log10().pow(0.4).add(1)
+                if (eff.gt(50)) eff = eff.log10().mul(29.4)
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        63: { title: "Мгновенный прилив", description: "Добавляет +1,000,000 к базовой генерации обычных очков.", cost: new ExpantaNum("5e26"), unlocked() { return hasUpgrade("p", 62) } }, // Было 1e30 (ДЕШЕВЛЕ В 500 РАЗ!)
+        64: { title: "Третий прорыв", description: "Прибавляет еще +0.5 к экспоненте престижа.", cost: new ExpantaNum("1e28"), unlocked() { return hasUpgrade("p", 63) } },
+
+        // --- РЯД 7 ---
+        71: {
+            title: "Ментальный шторм",
+            description: "Умножает обычные очки на слабый корень от обычных очков.",
+            cost: new ExpantaNum("1e52"),
+            unlocked() { return hasUpgrade("p", 64) },
+            effect() { 
+                let eff = player.points.add(1).pow(0.05) 
+                if (eff.gt(1000)) eff = eff.log10().pow(2).mul(111) // Софткап
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        72: { title: "Сжатие времени", description: "Умножает генерацию обычных очков на 25.", cost: new ExpantaNum("1e65"), unlocked() { return hasUpgrade("p", 71) } },
+        73: { title: "Тайный коэффициент", description: "Возводит генерацию обычных очков в степень 1.015.", cost: new ExpantaNum("1e78"), unlocked() { return hasUpgrade("p", 72) } },
+        74: { title: "Золотая жила", description: "Умножает прирост престиж-очков ровно на 500.", cost: new ExpantaNum("1e90"), unlocked() { return hasUpgrade("p", 73) } },
+
+        // --- РЯД 8 ---
+        81: {
+            title: "Гравитация",
+            description: "Очки престижа дают логарифмический буст обычным очкам.",
+            cost: new ExpantaNum("1e105"),
+            unlocked() { return hasUpgrade("p", 74) },
+            effect() { 
+                let eff = player.p.points.add(1).log10().pow(1.5).add(1)
+                if (eff.gt(500)) eff = eff.log10().mul(185) // Софткап
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        82: {
+            title: "Гипер-Коллекция",
+            description: "Каждое улучшение престижа дает еще х1.03 к обычным очкам.",
+            cost: new ExpantaNum("1e115"),
+            unlocked() { return hasUpgrade("p", 81) },
+            effect() { return new ExpantaNum(1.03).pow(player.p.upgrades.length) },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        83: {
+            title: "Зеркальный эффект",
+            description: "Прирост престижа умножается от количества улучшений.",
+            cost: new ExpantaNum("1e125"),
+            unlocked() { return hasUpgrade("p", 82) },
+            effect() { return new ExpantaNum(player.p.upgrades.length).pow(1.1).add(1) },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        84: { title: "Двойная сингулярность", description: "Возводит генерацию обычных очков в степень 1.015.", cost: new ExpantaNum("1e135"), unlocked() { return hasUpgrade("p", 83) } },
+
+        // --- РЯД 9 ---
+        91: {
+            title: "Фрактальный взрыв",
+            description: "Обычные очки умножают сами себя.",
+            cost: new ExpantaNum("1e145"),
+            unlocked() { return hasUpgrade("p", 84) },
+            effect() { 
+                let eff = player.points.add(1).log10().pow(1.1).add(1)
+                if (eff.gt(1000)) eff = eff.log10().mul(333) // Софткап
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        92: {
+            title: "Чистый резонанс",
+            description: "Прирост престижа мягко умножается от накопленного престижа.",
+            cost: new ExpantaNum("1e155"),
+            unlocked() { return hasUpgrade("p", 91) },
+            effect() { 
+                let eff = player.p.points.add(1).log10().pow(0.8).add(1)
+                if (eff.gt(200)) eff = eff.log10().mul(86.8) // Софткап
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        93: { title: "Ядро фабрики", description: "Добавляет статичные +1e7 к базовой генерации обычных очков.", cost: new ExpantaNum("1e162"), unlocked() { return hasUpgrade("p", 92) } },
+        94: { title: "Четвертый прорыв", description: "Прибавляет еще +0.02 к экспоненте престижа.", cost: new ExpantaNum("1e170"), unlocked() { return hasUpgrade("p", 93) } },
+
+        // --- РЯД 10 ---
+        101: {
+            title: "Квантовый буст",
+            description: "Очки престижа дают умножение обычных очков.",
+            cost: new ExpantaNum("1e178"),
+            unlocked() { return hasUpgrade("p", 94) },
+            effect() { 
+                let eff = player.p.points.add(1).pow(0.2) 
+                if (eff.gt(5000)) eff = eff.log10().pow(3).mul(116) // Жесткий софткап
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        102: { title: "Абсолютный разгон", description: "Умножает генерацию обычных очков на 500.", cost: new ExpantaNum("1e185"), unlocked() { return hasUpgrade("p", 101) } },
+        103: { title: "Излом пространства", description: "Возводит обычные очки в степень 1.015.", cost: new ExpantaNum("1e192"), unlocked() { return hasUpgrade("p", 102) } },
+        104: { title: "Мега Сброс", description: "Дает фиксированный множитель х250 к получению престижа.", cost: new ExpantaNum("1e200"), unlocked() { return hasUpgrade("p", 103) } },
+
+        // --- РЯД 11 ---
+        111: {
+            title: "Инфляция",
+            description: "Обычные очки разгоняют собственную генерацию.",
+            cost: new ExpantaNum("1e208"),
+            unlocked() { return hasUpgrade("p", 104) },
+            effect() { 
+                let eff = player.points.add(1).log10().pow(1.5).add(1)
+                if (eff.gt(10000)) eff = eff.log10().pow(2).mul(625) // Софткап
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        112: { title: "Кузница", description: "Добавляет статичные +1e12 к базовой генерации обычных очков.", cost: new ExpantaNum("1e215"), unlocked() { return hasUpgrade("p", 111) } },
+        113: {
+            title: "Изоляция",
+            description: "Очки престижа дают небольшой множитель к собственному приросту.",
+            cost: new ExpantaNum("1e222"),
+            unlocked() { return hasUpgrade("p", 112) },
+            effect() { 
+                let eff = player.p.points.add(1).log10().pow(0.5).add(1)
+                if (eff.gt(500)) eff = eff.log10().mul(185) // Софткап
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        114: { title: "Космический порядок", description: "Умножает обычные очки на 10,000.", cost: new ExpantaNum("1e228"), unlocked() { return hasUpgrade("p", 113) } },
+
+        // --- РЯД 12 ---
+        121: {
+            title: "Влияние Бездны",
+            description: "Очки престижа бустят генерацию обычных очков.",
+            cost: new ExpantaNum("1e234"),
+            unlocked() { return hasUpgrade("p", 114) },
+            effect() { 
+                let eff = player.p.points.add(1).pow(0.25) 
+                if (eff.gt(1e5)) eff = eff.log10().pow(3).mul(800) // Софткап
+                return eff
+            },
+            effectDisplay() { return "x" + format(upgradeEffect(this.layer, this.id)) },
+        },
+        122: { title: "Пятый прорыв", description: "Добавляет финальные +0.02 к экспоненте престижа.", cost: new ExpantaNum("1e240"), unlocked() { return hasUpgrade("p", 121) } },
+        123: { title: "Точка сдвига", description: "Возводит обычные очки в степень 1.015.", cost: new ExpantaNum("1e245"), unlocked() { return hasUpgrade("p", 122) } },
+        124: { title: "Взрыв Мультивселенной", description: "Умножает получение престиж-очков на 5,000.", cost: new ExpantaNum("1e250"), unlocked() { return hasUpgrade("p", 123) } },
+
+        // --- РЯД 13 ---
+        131: { title: "Расширение", description: "Умножает обычные очки на число 1e15.", cost: new ExpantaNum("1e255"), unlocked() { return hasUpgrade("p", 124) } },
+        132: { title: "Конец Престижа", description: "Увеличивает генерацию обычных очков на х1е25.", cost: new ExpantaNum("1e260"), unlocked() { return hasUpgrade("p", 131) } }
+
+    },
 })
